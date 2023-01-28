@@ -12,6 +12,13 @@ import (
 
 func main() {
 	err := overlays.LoadOverlays()
+	if os.IsNotExist(err) {
+		err = overlays.ScrapeOverlays()
+		if err != nil {
+			panic(err)
+		}
+	}
+
 	if !os.IsNotExist(err) {
 		panic(err)
 	}

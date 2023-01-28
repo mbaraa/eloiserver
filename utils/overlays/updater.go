@@ -13,7 +13,7 @@ func ScheduleScrapper() error {
 
 	var err2 error
 	err := cronie.AddFunc("0 0 0 * * *", func() {
-		err2 = scrapeOverlays()
+		err2 = ScrapeOverlays()
 	})
 	if err != nil {
 		return err
@@ -28,7 +28,7 @@ func ScheduleScrapper() error {
 	return nil
 }
 
-func scrapeOverlays() error {
+func ScrapeOverlays() error {
 	fmt.Println("Updating overlays cache from gpo.zugania.org...")
 
 	globals.Overlays = gposcrapper.GetOverlays()
