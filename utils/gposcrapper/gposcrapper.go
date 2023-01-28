@@ -130,7 +130,6 @@ func getOverlays(overlaysURL string) map[string]*models.Overlay {
 				text := li.Text
 				license := text[strings.Index(text, "License"):strings.LastIndex(text, "   ")]
 				license = license[len("License: "):]
-				//				fmt.Println("License", license)
 				ebuild := models.Ebuild{}
 				li.ForEach("div,a,br", func(i int, div *colly.HTMLElement) {
 					// 0 => Name-Version

@@ -1,7 +1,7 @@
 package overlays
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/mbaraa/eloiserver/globals"
 	"github.com/mbaraa/eloiserver/utils/gposcrapper"
@@ -29,7 +29,7 @@ func ScheduleScrapper() error {
 }
 
 func ScrapeOverlays() error {
-	fmt.Println("Updating overlays cache from gpo.zugania.org...")
+	log.Println("Updating overlays cache from gpo.zugania.org...")
 
 	globals.Overlays = gposcrapper.GetOverlays()
 	globals.Ebuilds = ExtractEbuilds(globals.Overlays)
@@ -39,6 +39,6 @@ func ScrapeOverlays() error {
 		return err
 	}
 
-	fmt.Println("All done ✓")
+	log.Println("All done ✓")
 	return nil
 }

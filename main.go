@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"os"
 
@@ -19,7 +19,7 @@ func main() {
 		}
 	}
 
-	if !os.IsNotExist(err) {
+	if err != nil && !os.IsNotExist(err) {
 		panic(err)
 	}
 
@@ -30,7 +30,7 @@ func main() {
 
 	////
 
-	fmt.Println("Starting HTTP server on port", config.PortNumber())
+	log.Println("Starting HTTP server on port", config.PortNumber())
 	http.Handle("/overlays/", apis.NewOverlaysAPI())
 	err = http.ListenAndServe(":"+config.PortNumber(), nil)
 	if err != nil {
