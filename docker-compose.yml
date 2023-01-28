@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  eloi-server:
+    build: .
+    restart: "unless-stopped"
+    ports:
+      - 1234:8080
+    volumes:
+      - overlays-data:/app
+
+volumes:
+  overlays-data:
