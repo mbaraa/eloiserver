@@ -1,6 +1,8 @@
 package globals
 
-import "github.com/mbaraa/eloiserver/models"
+import (
+	"github.com/mbaraa/eloiserver/models"
+)
 
 var (
 	Overlays map[string]*models.Overlay
