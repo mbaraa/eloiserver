@@ -7,7 +7,7 @@ services:
     ports:
       - 1234:8080
     volumes:
-      - overlays-data:/app
+      - overlays-data:/app/backups/
 
 volumes:
   overlays-data:
