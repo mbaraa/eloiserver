@@ -10,8 +10,6 @@ RUN go build -ldflags="-w -s"
 
 FROM alpine:latest as run
 
-RUN apk add cairo
-
 WORKDIR /app
 
 COPY --from=build /app/eloiserver ./run
