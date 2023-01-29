@@ -153,7 +153,7 @@ func getOverlays(overlaysURL string) map[string]*models.Overlay {
 					case 4:
 						ebuild.Homepage = div.ChildAttr("a", "href")
 					case 7:
-						ebuild.OverlayName = div.Text
+						ebuild.OverlayName = div.Text[len("Overlay: "):]
 					}
 				})
 				ebuild.License = license
