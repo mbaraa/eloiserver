@@ -6,11 +6,13 @@ package gposcrapper
 
 import (
 	"crypto/tls"
+	"encoding/xml"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
-	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/mbaraa/eloiserver/models"
 
@@ -25,22 +27,98 @@ var (
 	ebuildLinkRexExp        = regexp.MustCompile(fmt.Sprintf(`http:\/\/gpo\.zugaina\.org\/Overlays\/%s\/%s\/%s$`, allowedCharsInURLRegExp, allowedCharsInURLRegExp, allowedCharsInURLRegExp))
 )
 
-func GetOverlays() map[string]*models.Overlay {
-	return getOverlays(baseURL)
+func GetOverlays() (map[string]*models.Overlay, error) {
+	overlays, err := getOverlays(baseURL)
+	if err != nil {
+		return nil, err
+	}
+
+	return mergeMetadataWithOriginalEbuildsData(overlays)
 }
 
-func GetOverlay(overlayName string) *models.Overlay {
-	return getOverlays(baseURL + "/" + overlayName)[overlayName]
+func GetOverlay(overlayName string) (*models.Overlay, error) {
+	overlays, err := getOverlays(baseURL + "/" + overlayName)
+	if err != nil {
+		return nil, err
+	}
+
+	overlays2, err := mergeMetadataWithOriginalEbuildsData(overlays)
+	if err != nil {
+		return nil, err
+	}
+
+	return overlays2[overlayName], nil
 }
 
-func GetOverlaysMetadata() map[string]*models.Overlay {
-	return getOverlaysMetadata(baseURL)
+func GetOverlaysMetadata() (map[string]*models.Overlay, error) {
+	return getOverlaysMetadata()
 }
 
-func getOverlays(overlaysURL string) map[string]*models.Overlay {
-	overlays := make(map[string]*models.Overlay)
+type ConcurrentMap struct {
+	mu       sync.RWMutex
+	overlays map[string]*models.Overlay
+}
 
-	c := getColly()
+func NewConcurrentMap() *ConcurrentMap {
+	return &ConcurrentMap{
+		overlays: make(map[string]*models.Overlay),
+	}
+}
+
+func (c *ConcurrentMap) CreateOverlay(name string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if _, ok := c.overlays[name]; ok {
+		return
+	}
+	c.overlays[name] = &models.Overlay{EbuildGroups: make(map[string]*models.EbuildGroup)}
+}
+
+func (c *ConcurrentMap) CreateEbuildGroup(overlayName, groupName string) {
+	c.CreateOverlay(overlayName)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if _, ok := c.overlays[overlayName].EbuildGroups[groupName]; ok {
+		return
+	}
+	c.overlays[overlayName].EbuildGroups[groupName] = &models.EbuildGroup{Name: groupName, Ebuilds: make(map[string]*models.Ebuild)}
+}
+
+func (c *ConcurrentMap) CreateEbuild(overlayName, groupName, ebuildName string, ebuild *models.Ebuild) {
+	c.CreateEbuildGroup(overlayName, groupName)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if _, ok := c.overlays[overlayName].EbuildGroups[groupName].Ebuilds[ebuildName]; ok {
+		return
+	}
+
+	c.overlays[overlayName].EbuildGroups[groupName].Ebuilds[ebuildName] = ebuild
+}
+
+func (c *ConcurrentMap) GetOverlays() map[string]*models.Overlay {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	return c.overlays
+}
+
+func getOverlays(overlaysURL string) (map[string]*models.Overlay, error) {
+	overlays := NewConcurrentMap()
+
+	c := colly.NewCollector(
+		colly.AllowURLRevisit(),
+		colly.Async(true),
+	)
+
+	noSSL := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	c.WithTransport(noSSL)
+
+	c.Limit(&colly.LimitRule{DomainGlob: "*", Parallelism: 20})
 
 	c.OnHTML("table.usetable", func(e *colly.HTMLElement) {
 		e.ForEach("tr", func(i int, tr *colly.HTMLElement) {
@@ -60,22 +138,8 @@ func getOverlays(overlaysURL string) map[string]*models.Overlay {
 					link := td.Request.AbsoluteURL(td.ChildAttr("a", "href"))
 					c.Visit(link)
 					currentOverlayName = td.Text
-					createOverlay(overlays, currentOverlayName)
-					overlays[currentOverlayName].Name = td.Text
-					overlays[currentOverlayName].URL = link
-				case 1:
-					overlays[currentOverlayName].Description = td.Text
-				case 2:
-					num, _ := strconv.ParseInt(td.Text, 10, 32)
-					overlays[currentOverlayName].NumEbuilds = int(num)
-				case 3:
-					overlays[currentOverlayName].Homepage = td.ChildAttr("a", "href")
-				case 4:
-					overlays[currentOverlayName].Feed = td.ChildAttr("a", "href")
-				case 5:
-					overlays[currentOverlayName].Mail = td.ChildAttr("a", "href")
-				case 6:
-					overlays[currentOverlayName].Source = td.Text
+					overlays.CreateOverlay(currentOverlayName)
+					overlays.GetOverlays()[currentOverlayName].Name = td.Text
 				}
 			})
 		})
@@ -108,8 +172,8 @@ func getOverlays(overlaysURL string) map[string]*models.Overlay {
 			overlayName := noHost[:strings.Index(noHost, "/")]
 			groupName := noHost[strings.Index(noHost, "/")+1:]
 
-			createEbuildGroup(overlays, overlayName, groupName)
-			overlays[overlayName].EbuildGroups[groupName].Link = url
+			overlays.CreateEbuildGroup(overlayName, groupName)
+			overlays.GetOverlays()[overlayName].EbuildGroups[groupName].Link = url
 		})
 	})
 
@@ -158,99 +222,58 @@ func getOverlays(overlaysURL string) map[string]*models.Overlay {
 				})
 				ebuild.License = license
 				ebuild.GroupName = groupName
-				createEbuild(overlays, overlayName, groupName, ebuild.Name+"-"+ebuild.Version, &ebuild)
+				overlays.CreateEbuild(overlayName, groupName, ebuild.Name+"-"+ebuild.Version, &ebuild)
 			})
 		})
 	})
 
-	c.Visit(overlaysURL)
+	err := c.Visit(overlaysURL)
+	if err != nil {
+		return nil, err
+	}
+	c.Wait()
 
-	return overlays
+	return overlays.GetOverlays(), nil
 }
 
-func getOverlaysMetadata(overlaysURL string) map[string]*models.Overlay {
+func mergeMetadataWithOriginalEbuildsData(overlays map[string]*models.Overlay) (map[string]*models.Overlay, error) {
+	overlaysWithCorrectMetadata, err := getOverlaysMetadata()
+	if err != nil {
+		return nil, err
+	}
+
+	for name, overlay := range overlaysWithCorrectMetadata {
+		if _, ok := overlays[name]; ok {
+			overlay.EbuildGroups = overlays[overlay.Name].EbuildGroups
+		}
+	}
+
+	return overlaysWithCorrectMetadata, nil
+}
+
+func getOverlaysMetadata() (map[string]*models.Overlay, error) {
+	resp, err := http.Get("http://gpo.zugaina.org/lst/layman-repositories.xml")
+	if err != nil {
+		return nil, err
+	}
+	bodyBytes, _ := io.ReadAll(resp.Body)
+
+	var repos struct {
+		Repos []*models.Overlay `xml:"repo"`
+	}
+
+	err = xml.Unmarshal(bodyBytes, &repos)
+	if err != nil {
+		return nil, err
+	}
+
 	overlays := make(map[string]*models.Overlay)
 
-	c := getColly()
-
-	c.OnHTML("table.usetable", func(e *colly.HTMLElement) {
-		e.ForEach("tr", func(i int, tr *colly.HTMLElement) {
-			currentOverlayName := ""
-
-			tr.ForEach("td", func(i int, td *colly.HTMLElement) {
-				// 0 => Name
-				// 1 => Description
-				// 2 => NumEbuilds
-				// 3 => Homepage
-				// 4 => Feed
-				// 5 => Mail
-				// 6 => Source
-
-				switch i {
-				case 0:
-					link := td.Request.AbsoluteURL(td.ChildAttr("a", "href"))
-					currentOverlayName = td.Text
-					createOverlay(overlays, currentOverlayName)
-					overlays[currentOverlayName].Name = td.Text
-					overlays[currentOverlayName].URL = link
-				case 1:
-					overlays[currentOverlayName].Description = td.Text
-				case 2:
-					num, _ := strconv.ParseInt(td.Text, 10, 32)
-					overlays[currentOverlayName].NumEbuilds = int(num)
-				case 3:
-					overlays[currentOverlayName].Homepage = td.ChildAttr("a", "href")
-				case 4:
-					overlays[currentOverlayName].Feed = td.ChildAttr("a", "href")
-				case 5:
-					overlays[currentOverlayName].Mail = td.ChildAttr("a", "href")
-				case 6:
-					overlays[currentOverlayName].Source = td.Text
-				}
-			})
-		})
-	})
-
-	c.Visit(overlaysURL)
-
-	return overlays
-}
-
-func createOverlay(overlays map[string]*models.Overlay, name string) {
-	if _, ok := overlays[name]; ok {
-		return
-	}
-	overlays[name] = &models.Overlay{EbuildGroups: make(map[string]*models.EbuildGroup)}
-}
-
-func createEbuildGroup(overlays map[string]*models.Overlay, overlayName, groupName string) {
-	createOverlay(overlays, overlayName)
-
-	if _, ok := overlays[overlayName].EbuildGroups[groupName]; ok {
-		return
-	}
-	overlays[overlayName].EbuildGroups[groupName] = &models.EbuildGroup{Name: groupName, Ebuilds: make(map[string]*models.Ebuild)}
-}
-
-func createEbuild(overlays map[string]*models.Overlay, overlayName, groupName, ebuildName string, ebuild *models.Ebuild) {
-	createEbuildGroup(overlays, overlayName, groupName)
-
-	if _, ok := overlays[overlayName].EbuildGroups[groupName].Ebuilds[ebuildName]; ok {
-		return
+	for _, overlay := range repos.Repos {
+		name := overlay.Name
+		overlays[name] = overlay
+		overlays[name].EbuildGroups = make(map[string]*models.EbuildGroup)
 	}
 
-	overlays[overlayName].EbuildGroups[groupName].Ebuilds[ebuildName] = ebuild
-}
-
-func getColly() *colly.Collector {
-	c := colly.NewCollector(
-		colly.AllowURLRevisit(),
-	)
-
-	noSSL := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	}
-	c.WithTransport(noSSL)
-
-	return c
+	return overlays, nil
 }

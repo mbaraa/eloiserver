@@ -31,10 +31,14 @@ func ScheduleScrapper() error {
 func ScrapeOverlays() error {
 	log.Println("Updating overlays cache from gpo.zugania.org...")
 
-	globals.Overlays = gposcrapper.GetOverlays()
+	var err error
+	globals.Overlays, err = gposcrapper.GetOverlays()
+	if err != nil {
+		return err
+	}
 	globals.Ebuilds = ExtractEbuilds(globals.Overlays)
 
-	err := SaveOverlays(globals.Overlays)
+	err = SaveOverlays(globals.Overlays)
 	if err != nil {
 		return err
 	}

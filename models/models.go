@@ -1,17 +1,24 @@
 package models
 
 type Overlay struct {
-	EbuildGroups map[string]*EbuildGroup `json:"ebuildGroups"`
-	Name         string                  `json:"name"`
-	URL          string                  `json:"url"`
-	Homepage     string                  `json:"homepage"`
-	Description  string                  `json:"description"`
-	Source       string                  `json:"source"`
-	Mail         string                  `json:"mail"`
-	Feed         string                  `json:"feed"`
-	NumEbuilds   int                     `json:"numEbuilds"`
-}
+	Owner struct {
+		Email string `json:"email" xml:"email"`
+		Name  string `json:"name" xml:"name"`
+		Type  string `json:"type" xml:"type,attr"`
+	} `json:"owner" xml:"owner"`
 
+	Source []struct {
+		Type string `json:"type" xml:"type,attr"`
+		Link string `json:"link" xml:",innerxml"`
+	} `json:"source" xml:"source"`
+
+	EbuildGroups map[string]*EbuildGroup `json:"ebuildGroups"`
+
+	Name        string `json:"name" xml:"name"`
+	Description string `json:"description" xml:"description"`
+	Homepage    string `json:"homepage" xml:"homepage"`
+	Feed        string `json:"feed" xml:"feed"`
+}
 type EbuildGroup struct {
 	Ebuilds map[string]*Ebuild `json:"ebuilds"`
 	Name    string             `json:"name"`
