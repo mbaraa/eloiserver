@@ -27,6 +27,7 @@ func LoadOverlays() error {
 
 	globals.Overlays = overlays
 	globals.Ebuilds = ExtractEbuilds(overlays)
+	globals.SimpleOverlays = getSimpleOverlays(overlays)
 	return nil
 }
 

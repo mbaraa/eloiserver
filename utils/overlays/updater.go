@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/mbaraa/eloiserver/globals"
+	"github.com/mbaraa/eloiserver/models"
 	"github.com/mbaraa/eloiserver/utils/gposcrapper"
 	"github.com/robfig/cron"
 )
@@ -37,6 +38,7 @@ func ScrapeOverlays() error {
 		return err
 	}
 	globals.Ebuilds = ExtractEbuilds(globals.Overlays)
+	globals.SimpleOverlays = getSimpleOverlays(globals.Overlays)
 
 	err = SaveOverlays(globals.Overlays)
 	if err != nil {
@@ -45,4 +47,21 @@ func ScrapeOverlays() error {
 
 	log.Println("All done ✓")
 	return nil
+}
+
+func getSimpleOverlays(overlays map[string]*models.Overlay) (simple map[string]*models.Overlay) {
+	simple = make(map[string]*models.Overlay)
+
+	for name, overlay := range overlays {
+		simple[name] = &models.Overlay{
+			Name:        name,
+			Description: overlay.Description,
+			Homepage:    overlay.Homepage,
+			Feed:        overlay.Feed,
+			Owner:       overlay.Owner,
+			Source:      overlay.Source[:],
+		}
+	}
+
+	return
 }

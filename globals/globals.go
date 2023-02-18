@@ -5,6 +5,7 @@ import (
 )
 
 var (
-	Overlays map[string]*models.Overlay
-	Ebuilds  map[string]map[string]*models.Ebuild
+	Overlays       map[string]*models.Overlay
+	SimpleOverlays map[string]*models.Overlay
+	Ebuilds        map[string]map[string]*models.Ebuild
 )

@@ -17,7 +17,9 @@ func NewOverlaysAPI() http.Handler {
 
 func (o *OverlaysAPI) initEndPoints() *OverlaysAPI {
 	o.endpoints = map[string]http.HandlerFunc{
-		"GET /all":     o.getOverlays,
+		// ?simple=true|false
+		"GET /all": o.getOverlays,
+		// ?simple=true|false&name="someName"
 		"GET /single":  o.getOverlay,
 		"GET /ebuilds": o.getEbuilds,
 	}
@@ -38,12 +40,23 @@ func (o *OverlaysAPI) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 }
 
 func (o *OverlaysAPI) getOverlays(resp http.ResponseWriter, req *http.Request) {
+	simple := req.URL.Query().Get("simple") == "true"
+	if simple {
+		json.NewEncoder(resp).Encode(globals.SimpleOverlays)
+		return
+	}
+
 	json.NewEncoder(resp).Encode(globals.Overlays)
 }
 
 func (o *OverlaysAPI) getOverlay(resp http.ResponseWriter, req *http.Request) {
 	name := req.URL.Query().Get("name")
 	if overlay, ok := globals.Overlays[name]; ok {
+		simple := req.URL.Query().Get("simple") == "true"
+		if simple {
+			json.NewEncoder(resp).Encode(globals.SimpleOverlays[name])
+			return
+		}
 		json.NewEncoder(resp).Encode(overlay)
 		return
 	}
