@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	url2 "net/url"
 	"regexp"
 	"strings"
 	"sync"
@@ -188,10 +189,18 @@ func getOverlays(overlaysURL string) (map[string]*models.Overlay, error) {
 		overlayName := noHost[:strings.Index(noHost, "/")]
 		groupName := noHost[strings.Index(noHost, "/")+1 : strings.LastIndex(noHost, "/")]
 		ebuildName := noHost[strings.LastIndex(noHost, "/")+1:]
-
+		ebuildHomepage := ""
 		ebuildDescription := ""
+
 		e.ForEach("h5", func(i int, h5 *colly.HTMLElement) {
 			ebuildDescription = h5.Text
+		})
+
+		e.ForEach("#website_list", func(i int, a *colly.HTMLElement) {
+			trimmed := strings.TrimSpace(a.Text)
+			if _, err := url2.Parse(trimmed); err == nil {
+				ebuildHomepage = trimmed
+			}
 		})
 
 		e.ForEach("#"+overlayName, func(i int, div *colly.HTMLElement) {
@@ -219,8 +228,8 @@ func getOverlays(overlaysURL string) (map[string]*models.Overlay, error) {
 						ebuild.Architecture = div.Text
 					case 2:
 						ebuild.Flags = div.Text
-					case 4:
-						ebuild.Homepage = div.ChildAttr("a", "href")
+					//case 4:
+					//	ebuild.Homepage = div.ChildAttr("a", "href")
 					case 7:
 						ebuild.OverlayName = div.Text[len("Overlay: "):]
 					}
@@ -228,6 +237,7 @@ func getOverlays(overlaysURL string) (map[string]*models.Overlay, error) {
 				ebuild.License = license
 				ebuild.GroupName = groupName
 				ebuild.Description = ebuildDescription
+				ebuild.Homepage = ebuildHomepage
 				overlays.CreateEbuild(overlayName, groupName, ebuild.Name+"-"+ebuild.Version, &ebuild)
 			})
 		})
