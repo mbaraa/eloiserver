@@ -177,7 +177,7 @@ func getOverlays(overlaysURL string) (map[string]*models.Overlay, error) {
 		})
 	})
 
-	c.OnHTML("#ebuild_list", func(e *colly.HTMLElement) {
+	c.OnHTML("#contentInner", func(e *colly.HTMLElement) {
 		match := ebuildLinkRexExp.MatchString(e.Request.URL.String())
 		if !match {
 			return
@@ -188,6 +188,11 @@ func getOverlays(overlaysURL string) (map[string]*models.Overlay, error) {
 		overlayName := noHost[:strings.Index(noHost, "/")]
 		groupName := noHost[strings.Index(noHost, "/")+1 : strings.LastIndex(noHost, "/")]
 		ebuildName := noHost[strings.LastIndex(noHost, "/")+1:]
+
+		ebuildDescription := ""
+		e.ForEach("h5", func(i int, h5 *colly.HTMLElement) {
+			ebuildDescription = h5.Text
+		})
 
 		e.ForEach("#"+overlayName, func(i int, div *colly.HTMLElement) {
 			div.ForEach("li", func(i int, li *colly.HTMLElement) {
@@ -222,6 +227,7 @@ func getOverlays(overlaysURL string) (map[string]*models.Overlay, error) {
 				})
 				ebuild.License = license
 				ebuild.GroupName = groupName
+				ebuild.Description = ebuildDescription
 				overlays.CreateEbuild(overlayName, groupName, ebuild.Name+"-"+ebuild.Version, &ebuild)
 			})
 		})
