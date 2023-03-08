@@ -26,6 +26,8 @@ var (
 	overlayLinkRegExp       = regexp.MustCompile(`http:\/\/gpo\.zugaina\.org\/Overlays\/` + allowedCharsInURLRegExp + "$")
 	ebuildGroupLinkRegExp   = regexp.MustCompile(fmt.Sprintf(`http:\/\/gpo\.zugaina\.org\/Overlays\/%s\/%s$`, allowedCharsInURLRegExp, allowedCharsInURLRegExp))
 	ebuildLinkRexExp        = regexp.MustCompile(fmt.Sprintf(`http:\/\/gpo\.zugaina\.org\/Overlays\/%s\/%s\/%s$`, allowedCharsInURLRegExp, allowedCharsInURLRegExp, allowedCharsInURLRegExp))
+	spacesRegExp            = regexp.MustCompile(`\s{2,}`)
+	validLicenseRegExp      = regexp.MustCompile(`[a-zA-Z\-\+0-9\. ]*`)
 )
 
 func GetOverlays() (map[string]*models.Overlay, error) {
@@ -234,7 +236,7 @@ func getOverlays(overlaysURL string) (map[string]*models.Overlay, error) {
 						ebuild.OverlayName = div.Text[len("Overlay: "):]
 					}
 				})
-				ebuild.License = license
+				ebuild.License = reduceSpacesToOne(fixLicenseText(license))
 				ebuild.GroupName = groupName
 				ebuild.Description = ebuildDescription
 				ebuild.Homepage = ebuildHomepage
@@ -292,4 +294,12 @@ func getOverlaysMetadata() (map[string]*models.Overlay, error) {
 	}
 
 	return overlays, nil
+}
+
+func reduceSpacesToOne(s string) string {
+	return spacesRegExp.ReplaceAllString(s, " ")
+}
+
+func fixLicenseText(s string) string {
+	return strings.Join(validLicenseRegExp.FindAllString(s, -1), "")
 }
