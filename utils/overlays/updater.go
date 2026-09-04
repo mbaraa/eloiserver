@@ -3,9 +3,9 @@ package overlays
 import (
 	"log"
 
-	"github.com/mbaraa/eloiserver/globals"
-	"github.com/mbaraa/eloiserver/models"
-	"github.com/mbaraa/eloiserver/utils/gposcrapper"
+	"codeberg.org/lordbaraa/eloiserver/globals"
+	"codeberg.org/lordbaraa/eloiserver/models"
+	"codeberg.org/lordbaraa/eloiserver/utils/gposcrapper"
 	"github.com/robfig/cron"
 )
 

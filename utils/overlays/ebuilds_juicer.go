@@ -1,7 +1,7 @@
 package overlays
 
 import (
-	"github.com/mbaraa/eloiserver/models"
+	"codeberg.org/lordbaraa/eloiserver/models"
 )
 
 func ExtractEbuilds(overlays map[string]*models.Overlay) map[string]map[string]*models.Ebuild {

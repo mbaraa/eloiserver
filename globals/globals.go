@@ -1,7 +1,7 @@
 package globals
 
 import (
-	"github.com/mbaraa/eloiserver/models"
+	"codeberg.org/lordbaraa/eloiserver/models"
 )
 
 var (

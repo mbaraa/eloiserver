@@ -15,7 +15,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/mbaraa/eloiserver/models"
+	"codeberg.org/lordbaraa/eloiserver/models"
 
 	"github.com/gocolly/colly"
 )

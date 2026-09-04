@@ -1,6 +1,6 @@
 # Eloi's Server
 
-This is the server of [Eloi](https://github.com/mbaraa/eloi), where it scrapes over Zugania's website and provides a list of overlays to be used by the CLI client.
+This is the server of [Eloi](https://codeberg.org/lordbaraa/eloi), where it scrapes over Zugania's website and provides a list of overlays to be used by the CLI client.
 
 This server updates the Overlays and Ebuilds metadata every day on midnight, so that the client can get the latest version of the packages as soon as possible.
 
@@ -12,4 +12,4 @@ Also you can use the endpoints if you need a proper JSON of the Ebuilds or Overl
 - `/overlays/single?name=someOverlay&simple=true` returns the requested overlay's metadata data
 - `/overlays/ebuilds` returns all ebuilds' data
 
-Overlays and Ebuilds JSON schema can be found in the server's or client's [models](https://github.com/mbaraa/eloi-server/tree/main/models).
+Overlays and Ebuilds JSON schema can be found in the server's or client's [models](https://codeberg.org/lordbaraa/eloiserver/src/branch/master/models).

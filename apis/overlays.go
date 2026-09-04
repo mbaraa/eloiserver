@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/mbaraa/eloiserver/globals"
+	"codeberg.org/lordbaraa/eloiserver/globals"
 )
 
 type OverlaysAPI struct {

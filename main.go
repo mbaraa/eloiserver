@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/mbaraa/eloiserver/apis"
-	"github.com/mbaraa/eloiserver/config"
-	"github.com/mbaraa/eloiserver/utils/overlays"
+	"codeberg.org/lordbaraa/eloiserver/apis"
+	"codeberg.org/lordbaraa/eloiserver/config"
+	"codeberg.org/lordbaraa/eloiserver/utils/overlays"
 )
 
 func main() {

@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/mbaraa/eloiserver/config"
-	"github.com/mbaraa/eloiserver/globals"
-	"github.com/mbaraa/eloiserver/models"
+	"codeberg.org/lordbaraa/eloiserver/config"
+	"codeberg.org/lordbaraa/eloiserver/globals"
+	"codeberg.org/lordbaraa/eloiserver/models"
 )
 
 var overlaysFilePath = config.BackupDirectory() + "/_overlays.json"

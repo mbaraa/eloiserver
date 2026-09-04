@@ -1,4 +1,4 @@
-module github.com/mbaraa/eloiserver
+module codeberg.org/lordbaraa/eloiserver
 
 go 1.19
 
